@@ -14,5 +14,9 @@ urlpatterns = [
     path("", views.doctor_create_view),
     path("list/", views.doctor_list_view),
     path("all-patients/", views.DoctorPatientView.as_view()),
-
+    path("doctor/pending-patients", views.PendingPatientRequestsView.as_view()),
+    path(
+        "doctor/patient-verification/<str:patient_id>",
+        views.PatientVerificationView.as_view(),
+    ),
 ]

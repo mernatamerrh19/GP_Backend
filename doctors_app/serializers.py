@@ -76,7 +76,7 @@ class PatientSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["type"] = "patient"
-        validated_data["is_verified"] = True
+        validated_data["is_verified"] = False
         user = Doctor.objects.create_user(**validated_data)
 
         return user

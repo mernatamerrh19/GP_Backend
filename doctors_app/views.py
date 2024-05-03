@@ -59,16 +59,48 @@ class Logout(generics.GenericAPIView):
             {"success": True, "detail": "Logged out!"}, status=status.HTTP_200_OK
         )
 
+class PendingPatientRequestsView(generics.ListAPIView):
+    serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated]
 
-# class DoctorPatientView(generics.GenericAPIView):
-#     serializer_class = PatientSerializer
-#     permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        doctor = self.request.user
+        # Filter patients who are not yet verified
+        return Doctor.objects.filter(doctor=doctor, is_verified=False)
 
-#     def get(self, request):
-#         user = request.user
-#         patient = user.patients.filter(is_verified=True)
-#         serializer = PatientSerializer(patient, many=True)
-#         return Response(serializer.data)
+
+class PatientVerificationView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, patient_id):
+        try:
+            doctor = request.user
+            patient = Doctor.objects.get(
+                id=patient_id, doctor=doctor, is_verified=False
+            )
+            action = request.data.get("action")  # Get the action from request data
+
+            # Perform action based on doctor's choice
+            if action == "accept":
+                patient.is_verified = True
+                patient.save()
+                return Response(
+                    {"detail": "Patient verified successfully"},
+                    status=status.HTTP_200_OK,
+                )
+            elif action == "ignore":
+                # Perform any other action here, like notifying the patient or logging the decision
+                return Response(
+                    {"detail": "Patient ignored"}, status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {"detail": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST
+                )
+        except Doctor.DoesNotExist:
+            return Response(
+                {"detail": "Patient not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class DoctorPatientView(generics.GenericAPIView):
