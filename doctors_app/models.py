@@ -1,3 +1,4 @@
+from datetime import datetime
 import random
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
@@ -75,3 +76,13 @@ class Doctor(AbstractBaseUser, PermissionsMixin):
             self.id = "".join(random.choices("0123456789", k=4))
             self.username = self.email  # Set username to email
         super().save(*args, **kwargs)
+        
+    @property
+    def calculate_age(self):
+        today = datetime.today()
+        age = (
+            today.year
+            - self.birthday.year
+            - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
+        )
+        return age

@@ -14,15 +14,17 @@ class SignUp(viewsets.ModelViewSet):
     """
     A viewset for signing up new users.
     """
+
     authentication_classes = []  # Disable authentication for this view
     permission_classes = []
     serializer_class = DoctorSerializer
     queryset = Doctor.objects.all()
-    http_method_names = ['post']
+    http_method_names = ["post"]
 
     def get_serializer_class(self):
         if "/doctors/patient/" == self.request.path:
             from doctors_app.serializers import PatientSerializer
+
             return PatientSerializer
         return self.serializer_class
 
@@ -46,7 +48,9 @@ class Login(generics.GenericAPIView):
             return Response("invalid credentials")
 
         token, created = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "id": user.pk, "email": user.email, "type":user.type})
+        return Response(
+            {"token": token.key, "id": user.pk, "email": user.email, "type": user.type}
+        )
 
 
 class Logout(generics.GenericAPIView):
@@ -59,8 +63,9 @@ class Logout(generics.GenericAPIView):
             {"success": True, "detail": "Logged out!"}, status=status.HTTP_200_OK
         )
 
+
 class PendingPatientRequestsView(generics.ListAPIView):
-    serializer_class = DoctorSerializer
+    serializer_class = PatientSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -90,8 +95,10 @@ class PatientVerificationView(generics.GenericAPIView):
                 )
             elif action == "ignore":
                 # Perform any other action here, like notifying the patient or logging the decision
+                patient.delete()
                 return Response(
-                    {"detail": "Patient ignored"}, status=status.HTTP_200_OK
+                    {"detail": "Patient ignored. Patient data deleted."},
+                    status=status.HTTP_200_OK,
                 )
             else:
                 return Response(

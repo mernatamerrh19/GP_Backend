@@ -47,12 +47,11 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 
 class PatientSerializer(serializers.ModelSerializer):
-    # id = serializers.SerializerMethodField()
     email = serializers.EmailField()
-    # patients = PatientSerializer(many=True, read_only=True)
     password = serializers.CharField(
         style={"input_type": "password"}, trim_whitespace=False, write_only=True
     )
+    age = serializers.SerializerMethodField()
 
     class Meta:
         model = Doctor
@@ -63,8 +62,12 @@ class PatientSerializer(serializers.ModelSerializer):
             "email",
             "password",
             "doctor",
+            "age",
             "birthday",
         ]
+
+    def get_age(self, obj):
+        return obj.calculate_age
 
     def validate(self, attrs):
         email = attrs.get("email", None)
@@ -104,6 +107,12 @@ class AuthCustomTokenSerializer(serializers.Serializer):
             if user:
                 if not user.is_active:
                     raise serializers.ValidationError(_("User account is disabled."))
+                elif not user.is_verified:
+                    raise serializers.ValidationError(
+                        _(
+                            "User account is not validated yet. Please wait for doctor verification."
+                        )
+                    )
             else:
                 raise serializers.ValidationError(
                     _("Unable to log in with provided credentials.")
