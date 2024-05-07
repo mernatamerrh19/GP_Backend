@@ -158,21 +158,6 @@ while True:
         pose_results.append((Tz, Tx, Ty, Rx, Ry, Rz))
 
 
-# Print pose, gaze, and AU results
-# print("Pose estimation:", pose_results)
-# print("Gaze results:", gaze_results)
-# print("AU results:", au_results)
-
-# pose_results = [(0.0, 0.0, 0.0, 0.1, 0.2, 0.3), (1.0, 1.0, 1.0, 0.4, 0.5, 0.6)]
-# gaze_results = [
-#     (0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.7, 0.8),
-#     (2.0, 2.0, 2.0, 1.5, 1.5, 1.5, 0.9, 1.0),
-# ]
-# au_results = [
-#     [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-#     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-# ]
-
 # Open a CSV file for writing
 with open("facial_features.csv", "w", newline="") as csvfile:
     writer = csv.writer(csvfile)

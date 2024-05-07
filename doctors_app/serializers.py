@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Doctor
-from patients_app.serializers import PatientSerializer
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import gettext as _
@@ -13,7 +12,6 @@ from django.core.validators import validate_email as django_validate_email
 class DoctorSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     email = serializers.EmailField()
-    # patients = PatientSerializer(many=True, read_only=True)
     password = serializers.CharField(
         style={"input_type": "password"}, trim_whitespace=False, write_only=True
     )
