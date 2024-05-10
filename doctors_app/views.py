@@ -1,13 +1,17 @@
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
+
+from py_client.audio_file_and_transcript import process_video
 from .models import Doctor
-from .serializers import DoctorSerializer, AuthCustomTokenSerializer, PatientSerializer
+from .serializers import DoctorSerializer, AuthCustomTokenSerializer, PatientSerializer, VideoSerializer
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+import subprocess
 
 
 class SignUp(viewsets.ModelViewSet):
@@ -133,6 +137,26 @@ class DoctorPatientView(generics.GenericAPIView):
         patients = doctor.patients.filter(is_verified=True)
         serializer = PatientSerializer(patients, many=True)
         return Response(serializer.data)
+
+
+class VideoViewSet(generics.GenericAPIView):
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = VideoSerializer(data=request.data)
+        if serializer.is_valid():
+            instance = serializer.save()
+            video_path = instance.video_file.path
+            csv_file_path, audio_file_path = process_video(
+                video_path
+            )  # Call the function
+            response_data = {
+                "csv_file_path": csv_file_path,
+                "audio_file_path": audio_file_path,
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DoctorCreateAPIView(generics.CreateAPIView):

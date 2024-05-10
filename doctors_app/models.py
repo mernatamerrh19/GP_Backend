@@ -86,3 +86,8 @@ class Doctor(AbstractBaseUser, PermissionsMixin):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
+    
+    
+class Video(models.Model):
+    # title = models.CharField(max_length=100)
+    video_file = models.FileField(upload_to='videos/')

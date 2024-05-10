@@ -3,10 +3,7 @@ from .models import Doctor
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import gettext as _
-
-
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email as django_validate_email
+from .models import Video
 
 
 class DoctorSerializer(serializers.ModelSerializer):
@@ -122,3 +119,9 @@ class AuthCustomTokenSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
+
+
+class VideoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Video
+        fields = ["video_file"]

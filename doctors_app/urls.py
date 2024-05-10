@@ -1,9 +1,10 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
+
 router = DefaultRouter()
-router.register('doctors', views.SignUp, basename='doctors')
-router.register('patient', views.SignUp, basename='patient')
+router.register("doctors", views.SignUp, basename="doctors")
+router.register("patient", views.SignUp, basename="patient")
 
 
 urlpatterns = [
@@ -19,4 +20,5 @@ urlpatterns = [
         "doctor/patient-verification/<str:patient_id>",
         views.PatientVerificationView.as_view(),
     ),
+    path("patient/patient-video", views.VideoViewSet.as_view(), name="Video"),
 ]
