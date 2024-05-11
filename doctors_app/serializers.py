@@ -41,12 +41,21 @@ class DoctorSerializer(serializers.ModelSerializer):
         return user
 
 
+class VideoSerializer(serializers.ModelSerializer):
+    uploaded_at = serializers.DateTimeField(format="%d - %m - %Y", read_only=True)
+
+    class Meta:
+        model = Video
+        fields = ["video_file", "uploaded_at"]
+
+
 class PatientSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
     password = serializers.CharField(
         style={"input_type": "password"}, trim_whitespace=False, write_only=True
     )
     age = serializers.SerializerMethodField()
+    videos = VideoSerializer(many=True)
 
     class Meta:
         model = Doctor
@@ -59,6 +68,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "doctor",
             "age",
             "birthday",
+            "videos"
         ]
 
     def get_age(self, obj):
@@ -122,6 +132,8 @@ class AuthCustomTokenSerializer(serializers.Serializer):
 
 
 class VideoSerializer(serializers.ModelSerializer):
+    uploaded_at = serializers.DateTimeField(format="%d - %m - %Y", read_only=True)
+
     class Meta:
         model = Video
-        fields = ["video_file"]
+        fields = ["video_file", "uploaded_at"]

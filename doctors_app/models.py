@@ -76,7 +76,7 @@ class Doctor(AbstractBaseUser, PermissionsMixin):
             self.id = "".join(random.choices("0123456789", k=4))
             self.username = self.email  # Set username to email
         super().save(*args, **kwargs)
-        
+
     @property
     def calculate_age(self):
         today = datetime.today()
@@ -86,8 +86,12 @@ class Doctor(AbstractBaseUser, PermissionsMixin):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
-    
-    
+
+
 class Video(models.Model):
-    # title = models.CharField(max_length=100)
-    video_file = models.FileField(upload_to='videos/')
+    patient = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="videos")
+    video_file = models.FileField(upload_to="videos/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def formatted_uploaded_at(self):
+        return self.uploaded_at.strftime("%d - %m - %Y")

@@ -133,9 +133,9 @@ class DoctorPatientView(generics.GenericAPIView):
                 {"detail": "Doctor not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Retrieve patients associated with the doctor
+        # Retrieve patients associated with the doctor along with their videos
         patients = doctor.patients.filter(is_verified=True)
-        serializer = PatientSerializer(patients, many=True)
+        serializer = self.get_serializer(patients, many=True)
         return Response(serializer.data)
 
 
@@ -146,14 +146,14 @@ class VideoViewSet(generics.GenericAPIView):
     def post(self, request):
         serializer = VideoSerializer(data=request.data)
         if serializer.is_valid():
+            # Assign the current patient (authenticated user) to the doctor field of the video
+            serializer.validated_data["patient"] = request.user
             instance = serializer.save()
-            video_path = instance.video_file.path
-            csv_file_path, audio_file_path = process_video(
-                video_path
-            )  # Call the function
+            # Add your video processing logic here
             response_data = {
-                "csv_file_path": csv_file_path,
-                "audio_file_path": audio_file_path,
+                "video_id": instance.id,
+                "video_file": instance.video_file.url,
+                "uploaded_at": instance.formatted_uploaded_at(),
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
