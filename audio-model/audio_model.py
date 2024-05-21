@@ -42,23 +42,21 @@ matplotlib.use('TkAgg')
 num_classes = 2
 batch_size = 16
 epochs = 10
-#
-# tf.random.set_seed(101)
 
+# tf.random.set_seed(14)
+# tf.keras.utils.set_random_seed(103)
 
-tf.random.set_seed(14)
-tf.keras.utils.set_random_seed(103)
-
-# tf.random.set_seed(101)
-# tf.keras.utils.set_random_seed(21)
+#78%
+tf.random.set_seed(103)
+tf.keras.utils.set_random_seed(21)
 
 # If using TensorFlow, this will make GPU ops as deterministic as possible,
 # but it will affect the overall performance, so be mindful of that.
 # tf.config.experimental.enable_op_determinism()
 
 # dataset_url = "G:\data\DP-preprocessed-train"
-# archive = os.path.abspath(r"G:\data\DP-preprocessed-train")
 archive = os.path.abspath(r"G:\data\DP-preprocessed-train")
+# archive = os.path.abspath(r"G:\data\DP-preprocessed-train")
 # archive =os.path.abspath(r'D:\GP-Backup\4-classes\DP-preprocessed-train')
 # archive = tf.keras.utils.get_file(origin= 'file://'+dataset_url, fname=None)
 data_dir = pathlib.Path(archive).with_suffix('')
@@ -248,6 +246,7 @@ Not = class_names.index('class n')
 # Initialize the RandomOverSampler and RandomUnderSampler for validation data
 # at 180 sec we chose them 200/200
 # at 120 sec we chose them 270/270
+#it was 250/250
 oversampler = RandomOverSampler(sampling_strategy={Depressed: 250})
 undersampler = RandomUnderSampler(sampling_strategy={Not: 250})
 
@@ -363,60 +362,6 @@ labels_ontest=tf.keras.utils.to_categorical(labels_ontest,2)
 print(labels_ontest.shape)
 print(images_ontest.shape)
 
-from keras.applications.vgg16 import preprocess_input
-from keras.applications.vgg16 import VGG16
-
-base_model= tf.keras.applications.VGG16(
-    include_top=False,
-    weights='imagenet',
-    input_tensor=None,
-    input_shape=(256,256,3),
-    classes=2,
-    classifier_activation='softmax')
-
-
-def preprocess(images):
-  return preprocess_input(images)
-
-#
-# images_ontrain=preprocess(images_ontrain)
-# images_ontest=preprocess(images_ontest)
-# images_onval=preprocess(images_onval)
-#
-# model= models.Sequential([
-#     tf.keras.layers.GaussianNoise(0.4),
-#     # tf.keras.layers.BatchNormalization(),
-#     tf.keras.layers.ActivityRegularization(input_shape=(256, 256, 3), l2=0.0),
-#
-#     tf.keras.layers.Conv2D(32, (7,7), activation='relu'),
-#     tf.keras.layers.BatchNormalization(),
-#     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-#     # tf.keras.layers.Dropout(0.2),
-#
-#     tf.keras.layers.Conv2D(64,  (7,7), activation='relu'),
-#     # tf.keras.layers.BatchNormalization(),
-#     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-#     # tf.keras.layers.Dropout(0.2),
-#
-#
-#     tf.keras.layers.Conv2D(64,  (7, 7), activation='relu'),
-#     # tf.keras.layers.BatchNormalization(),
-#     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-#     # tf.keras.layers.Dropout(0.1),
-#
-#     tf.keras.layers.Conv2D(128, (7,7),  activation='relu'),
-#     # tf.keras.layers.BatchNormalization(),
-#     tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-#     # tf.keras.layers.Dropout(0.1),
-#
-#     tf.keras.layers.Flatten(),
-#     # tf.keras.layers.Dense(128, activation='relu'),
-#     # tf.keras.layers.BatchNormalization(),
-#
-#     tf.keras.layers.Dense(32, activation='relu'),
-#     tf.keras.layers.Dropout(0.1),
-#     tf.keras.layers.Dense(2, activation='softmax')
-# ])
 
 
 #72% weighted f1 score
@@ -453,50 +398,89 @@ def preprocess(images):
 #     tf.keras.layers.Dropout(0.1),
 #     tf.keras.layers.Dense(2, activation='softmax')
 # ])
+from keras.applications.resnet import ResNet50
+base= ResNet50(
+    include_top=True,
+    # include_preprocessing=True,
+    weights='imagenet',
+    input_tensor=None,
+    input_shape=None,
+    pooling= None
+    # ,classes=2,
+    # classifier_activation='softmax'
+)
+for layer in base.layers:
+    layer.trainable = False
 
 
-# 77 f1 score%
+# model= models.Sequential([
+# tf.keras.layers.Resizing(
+#     224,
+#     224,
+#     interpolation='bilinear'),
+#
+#     tf.keras.layers.RandomFlip("horizontal"),
+#     # tf.keras.layers.GaussianNoise(0.3),
+#     base
+#     # ,tf.keras.layers.GlobalAveragePooling2D()
+#     # , tf.keras.layers.Dense(64, activation='relu')
+#     ,tf.keras.layers.Dropout(0.2)
+#     ,tf.keras.layers.Dense(2, activation='softmax')
+# ])
+
+
+# # our model
 model = models.Sequential([
-  # tf.keras.layers.ActivityRegularization(input_shape=(256, 256, 3), l2=0.0),
-  #  layers.Rescaling(scale=1./255),
-   # tf.keras.layers.GaussianNoise(0.2),
+
+   tf.keras.layers.InputLayer(shape=(256,256,3),name='input_layer'),
+   # layers.Rescaling(scale=1./127.5, offset=-1),
+   tf.keras.layers.GaussianNoise(0.4), ###0.2/0.3
    tf.keras.layers.RandomFlip("horizontal"),
+   # keras.layers.ActivityRegularization(l2=0.1),
 
-   tf.keras.layers.ActivityRegularization(input_shape=(256, 256, 3)),
-
-   tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu', strides=(2, 2)),
+   tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu', strides=(2, 2)), #32
    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
    tf.keras.layers.BatchNormalization(),
+    # tf.keras.layers.Dropout(0.1), #wasn't here
 
-   tf.keras.layers.Conv2D(64, (3, 3), padding='same', activation='relu', strides=(2, 2)),
-   tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-   tf.keras.layers.BatchNormalization(),
-    tf.keras.layers.Dropout(0.1),
-
-   tf.keras.layers.Conv2D(128, (3, 3), padding='same', activation='relu', strides=(2, 2)),
-   tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-   tf.keras.layers.BatchNormalization(),
-    tf.keras.layers.Dropout(0.1),
-
-   tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu', strides=(2, 2)),
+   tf.keras.layers.Conv2D(64, (3, 3), padding='same', activation='relu', strides=(2, 2)), #64
    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
    tf.keras.layers.BatchNormalization(),
    tf.keras.layers.Dropout(0.1),
 
-   tf.keras.layers.GlobalAveragePooling2D(),
-   # tf.keras.layers.Flatten(),
-   # tf.keras.layers.GlobalMaxPooling2D(),
-   layers.Dense(64, activation='relu'),  # it was 128
+   tf.keras.layers.Conv2D(128, (3, 3), padding='same', activation='relu', strides=(2, 2)), #128
+   tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
    tf.keras.layers.BatchNormalization(),
-   # tf.keras.layers.Dropout(0.1),
-   layers.Dense(32, activation='relu'),
+   tf.keras.layers.Dropout(0.2),    #0.2
+
+   tf.keras.layers.Conv2D(32, (3, 3), padding='same', activation='relu', strides=(2, 2)), #32
+   tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+   tf.keras.layers.BatchNormalization(),
+   tf.keras.layers.Dropout(0.1),
+
+
+   tf.keras.layers.GlobalAveragePooling2D(),
+   layers.Dense(64, activation='relu'), #64
+   tf.keras.layers.BatchNormalization(),
+   tf.keras.layers.Dropout(0.1), ##0.1
+   layers.Dense(32, activation='relu'), #32
    tf.keras.layers.Dropout(0.1),
    layers.Dense(2, activation='softmax')
 ])
 
 
+# model.build(input_shape=(256, 256, 3))
 
-model.build(input_shape=(None,256, 256, 3))
+decay_steps = 1000
+initial_learning_rate = 1e-1
+lr_decayed_fn = keras.optimizers.schedules.CosineDecay(
+    initial_learning_rate, decay_steps)
+
+
+# lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+#     initial_learning_rate=1e+1,
+#     decay_steps=10000,
+#     decay_rate=0.9)
 
 model.compile(
               loss=tf.keras.losses.CategoricalCrossentropy(),
@@ -509,27 +493,55 @@ model.compile(
               ,metrics=['categorical_accuracy'])
 model.summary()
 #factor=0.1, patience=4, min_lr=1e-8
-reduce_lr = tf.keras.callbacks.ReduceLROnPlateau()
-checkpoint = ModelCheckpoint("audio.weights.h5", monitor='val_categorical_accuracy', verbose=1, save_best_only=True, mode='max', save_weights_only=True)
-early = EarlyStopping(monitor='val_categorical_accuracy',  patience=60, verbose=1,  min_delta=0, mode='max', restore_best_weights=True)
 
-#patience=80
 
-# def lr_schedule(epoch):
-#     return 0.001 * np.exp(-epoch / 10)
-# lr_scheduler = LearningRateScheduler(lr_schedule)
+checkpoint = ModelCheckpoint("audio_1.keras", monitor='val_categorical_accuracy', verbose=1, save_best_only=True, mode='max')
+early = EarlyStopping(monitor='val_categorical_accuracy',  patience=100, verbose=1,  min_delta=0, mode='max', restore_best_weights=True)
+
+
+def lr_schedule(epoch):
+    return 0.001 * np.exp(-epoch / 10)
+lr_scheduler = LearningRateScheduler(lr_schedule)
 
 # class_weights = {class_names.index('Depressed'): 1.31, class_names.index('Not'): 4.89}
+
+#we swt that
+reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.6,
+                              patience=10, min_lr=0.00000001, mode='max')
+#0.6 /10
+# reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.4,
+#                               patience=7, min_lr=1e-7, mode='max')
+
+# swap_weights=tf.keras.callbacks.SwapEMAWeights(swap_on_epoch=False)
+
+
+def step_decay(epoch):
+	initial_lrate = 0.1
+	drop = 0.5
+	epochs_drop = 10.0
+	lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
+	return lrate
+lrate = LearningRateScheduler(step_decay)
+
+
+# def scheduler(epoch, lr):
+#     if epoch < 10:
+#         return lr
+#     else:
+#         return lr * keras.ops.exp(-0.1)
+
+
+# callback = keras.callbacks.LearningRateScheduler(scheduler)
 
 history= model.fit(images_ontrain,labels_ontrain
           , epochs=500
           , verbose=1
           # , shuffle= True
-          ,batch_size=32
+          ,batch_size=16
           # , steps_per_epoch= 63
           , validation_data= (images_onval,labels_onval)
           # , validation_steps= 12
-          , validation_batch_size=16
+          , validation_batch_size=8
           , callbacks=[checkpoint, early, reduce_lr]
                    )
 
