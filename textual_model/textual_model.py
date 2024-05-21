@@ -27,6 +27,13 @@ from keras.initializers import Constant
 # seed(1)
 # tf.random.set_seed(42)
 # tf.keras.utils.set_random_seed(63)
+#70%
+tf.random.set_seed(66)
+tf.keras.utils.set_random_seed(103)
+
+
+# tf.random.set_seed(66)
+# tf.keras.utils.set_random_seed(113)
 
 # path_meta= 'F:/GP/metadata_mapped.csv'
 # path_test_split=r'F:/GP/labels/test_split.csv'
@@ -39,7 +46,10 @@ path_test_split=r'G:/labels/test_split.csv'
 output_folder_1="G:/data/txt-preprocessed-train"
 output_folder_2="G:/data/txt-preprocessed-dev"
 output_folder_3="G:/data/txt-preprocessed-test"
-glove_file_path = 'G:\Glove\glove.twitter.27B.200d.txt'
+glove_file_path = r"G:\Glove\glove.twitter.27B.25d.txt"
+# glove_file_path = 'G:\Glove\glove.twitter.27B.200d.txt' #we was working on this
+
+#glove.6B.200d got 80%
 
 
 number_list_train=[]
@@ -247,7 +257,7 @@ vocab_size = len(tokenizer.word_index) + 1
 # max_len = max(len(sentence.split()) for sentence in all_text)
 
 print(f'Vocabulary Size: {vocab_size}')
-# print(f'Maximum Sequence Length: {max_len}')
+# print(f'Maximum Sequence Length:{max_len}')
 
 sequences = tokenizer.texts_to_sequences(all_text)
 
@@ -281,9 +291,11 @@ sequences = tokenizer.texts_to_sequences(all_text)
 
 #Using the max_len_train not max_len_test to make all text have the same length using padding
 X_padded_test = pad_sequences(sequences, maxlen=max_len_train, padding='post')
+#padding='post'
 
 
-embedding_dim = 200
+# embedding_dim = 200
+embedding_dim = 25
 
 def load_glove_embeddings(file_path):
     embeddings_index = {}
@@ -386,6 +398,14 @@ X_train, y_train = undersampler.fit_resample(X_train, y_train)
 
 count_unique(y_train, y_dev, y_test)
 
+np.save("X_train_textual", np.asarray(X_train))
+np.save("y_train_textual", np.asarray(y_train))
+
+np.save("X_dev_textual", np.asarray(X_dev))
+np.save("y_dev_textual", np.asarray(y_train))
+
+np.save("X_test_textual", np.asarray(X_test))
+np.save("y_test_textual", np.asarray(y_test))
 
 max_len_train = 2659
 max_len_dev = 2573
@@ -400,8 +420,8 @@ batch_size = 64
 epochs = 300
 
 # Adding early stopping
-early_stopping = EarlyStopping(monitor='val_accuracy', patience=50, restore_best_weights=True)
-checkpoint = ModelCheckpoint("textual.weights.h5", monitor='val_accuracy', verbose=1, save_best_only=True, mode='auto', save_weights_only=True)
+early_stopping = EarlyStopping(monitor='val_categorical_accuracy', patience=60, restore_best_weights=True, mode='max')
+checkpoint = ModelCheckpoint("textual.keras", monitor='val_categorical_accuracy', verbose=1, save_best_only=True, mode='auto', save_weights_only=False)
 
 
 # # Learning rate scheduler
@@ -409,59 +429,121 @@ checkpoint = ModelCheckpoint("textual.weights.h5", monitor='val_accuracy', verbo
 #     return 0.001 * np.exp(-epoch / 10)
 # lr_scheduler = LearningRateScheduler(lr_schedule)
 
+# Learning rate scheduler
+def lr_schedule(epoch):
+    return 0.0001 * (-epoch/10)
+lr_scheduler = LearningRateScheduler(lr_schedule)
+
+decay_steps = 1000
+initial_learning_rate = 0.1
+lr_decayed_fn = keras.optimizers.schedules.CosineDecay(
+    initial_learning_rate, decay_steps)
+
 # Trying different optimizers:
-# optimizer = keras.optimizers.SGD(learning_rate=0.01, momentum=0.9)
-# optimizer = keras.optimizers.RMSprop(learning_rate=0.001, rho=0.9) #53
+# optimizer = keras.optimizers.SGD()
+# optimizer = keras.optimizers.RMSprop() #53
 # optimizer = keras.optimizers.Adagrad(learning_rate=0.001)
 # optimizer = keras.optimizers.Adadelta(learning_rate=1.0, rho=0.95)
 # optimizer = keras.optimizers.Nadam(learning_rate=0.001, beta_1=0.9)
 # optimizer = keras.optimizers.Ftrl(learning_rate=0.01, learning_rate_power=-0.5, initial_accumulator_value=0.1, l1_regularization_strength=0.0, l2_regularization_strength=0.0)
-optimizer = keras.optimizers.Adam() #59 #0.0001
-# optimizer = keras.optimizers.Adamax(learning_rate=0.001)
+
+# optimizer = keras.optimizers.Adamax()
+
+# decay_steps = 1000
+# initial_learning_rate = 0.1
+# lr_decayed_fn = keras.optimizers.schedules.CosineDecay(
+#     initial_learning_rate, decay_steps)
+
+
+optimizer = keras.optimizers.Adam()
 
 model = Sequential()
-
-# model.add(BatchNormalization())
-
 model.add(embedding_layer)
 
-# model.add(BatchNormalization())
-# model.add(Embedding(input_dim=vocab_size, output_dim=embedding_dim, input_length=max_len))
-model.add(Dense(8, activation='relu'))
-model.add(BatchNormalization())
-model.add(MaxPooling1D(3))
-model.add(Dropout(0.1))
+# # model.add(BatchNormalization())
+# # model.add(keras.layers.Bidirectional(keras.layers.LSTM(32, return_sequences=True)))
+# # model.add(keras.layers.Bidirectional(keras.layers.LSTM(32, return_sequences=True)))
+# # model.add(keras.layers.Bidirectional(keras.layers.LSTM(32)))
+# # model.add(keras.layers.SimpleRNN(32))
 #
+# model.add(keras.layers.Bidirectional(keras.layers.LSTM(8, return_sequences=True)))
+# model.add(keras.layers.Bidirectional(keras.layers.LSTM(8, return_sequences=True)))
+# model.add(keras.layers.Bidirectional(keras.layers.LSTM(16, return_sequences=True)))
+# model.add(keras.layers.Bidirectional(keras.layers.LSTM(16, return_sequences=True)))
+# model.add(keras.layers.Bidirectional(keras.layers.LSTM(32, return_sequences=True)))
+# model.add(keras.layers.Bidirectional(keras.layers.LSTM(32)))
+# #batch was here and got 80.35 from first epoch but didn't improve
+# # model.add(BatchNormalization())
+# # model.add(keras.layers.Dense(64, activation='relu'))
+# model.add(Dropout(0.1))
+# model.add(keras.layers.Dense(2, activation='softmax'))
+
+#############################
+
+#our model
 model.add(Dense(16, activation='relu'))
 model.add(BatchNormalization())
 model.add(MaxPooling1D(3))
-model.add(Dropout(0.1))
 
-model.add(Dense(32, activation='relu'))
+model.add(Dense(32, activation='relu' ))
 model.add(BatchNormalization())
 model.add(MaxPooling1D(3))
-model.add(Dropout(0.1))
 
-# model.add(Conv1D(20, 9, activation='relu'))
-# model.add(BatchNormalization())
-# model.add(MaxPooling1D(3))
-# model.add(Dropout(0.2))
+model.add(Dense(64, activation='relu'))
+model.add(BatchNormalization())
+model.add(MaxPooling1D(3))
 
-# model.add(Conv1D(128, 7, activation='relu'))
-# model.add(BatchNormalization())
-# model.add(MaxPooling1D(3))
-# model.add(Dropout(0.3))
+
+model.add(Dense(128, activation='relu' ))
+model.add(BatchNormalization())
+model.add(MaxPooling1D(3))
+model.add(Dropout(0.1)) #0.1
+
 
 model.add(GlobalAveragePooling1D())
 
 
 model.add(Dense(64, activation='relu'))
-# model.add(BatchNormalization())
-model.add(Dropout(0.1))
+model.add(Dropout(0.1)) #0.1
 model.add(Dense(2, activation='softmax'))
+######################################################
+# model.add(Dropout(0.2))
+# # Define the RNN cells
+# rnn_cell_16 = keras.layers.LSTM(16, return_sequences=True)
+# rnn_cell_32 = keras.layers.LSTM(32, return_sequences=True, kernel_regularizer=keras.regularizers.L1L2(l2=0.01, l1=0.01))
+#
+# # Add Bidirectional layers with the defined RNN cells
+# model.add(keras.layers.Bidirectional(rnn_cell_16))
+# model.add(keras.layers.Bidirectional(rnn_cell_16))
+# model.add(keras.layers.Bidirectional(rnn_cell_32))
+#
+#
+# # model.add(GlobalAveragePooling1D())
+# # model.add(Dense(32, activation='relu'))
+# # model.add(Dropout(0.1))
+#
+# model.add(keras.layers.LSTM(8))
+# model.add(keras.layers.Dropout(0.1))
 
+
+# model.add(GlobalAveragePooling1D())
+# # #73 @ 64
+# # #75 f1 score and 62% acc @ 128
+# model.add(Dense(128, activation='relu'))
+# model.add(Dropout(0.1))
+# model.add(Dense(32, activation='softmax'))
+# model.add(Dropout(0.2))
+# model.add(Dense(2, activation='softmax'))
+
+
+reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.9,
+                              patience=12, min_lr=0.0000001)
+
+
+# reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.1,
+#                               patience=12, min_lr=0.00001)
 model.summary()
-model.compile(loss='mse', optimizer= optimizer, metrics=['accuracy'])
+model.compile(loss=tf.keras.losses.CategoricalCrossentropy(), optimizer= optimizer, metrics=['categorical_accuracy'])
 
 X_train_reshaped = X_train.reshape(X_train.shape[0], max_len_dev)
 X_dev_reshaped = X_dev.reshape(X_dev.shape[0], max_len_dev)
@@ -475,8 +557,8 @@ y_dev = tf.keras.utils.to_categorical(y_dev,2)
 y_test=np.array(y_test)
 y_test = tf.keras.utils.to_categorical(y_test,2)
 
-
-history = model.fit(X_train_reshaped, y_train, batch_size=16, validation_batch_size=8, epochs=epochs, validation_data=(X_dev_reshaped, y_dev), callbacks=[early_stopping, checkpoint]) #, lr_scheduler,
+#it was 16/8
+history = model.fit(X_train_reshaped, y_train, batch_size=32, validation_batch_size=16, epochs=epochs, validation_data=(X_dev_reshaped, y_dev), callbacks=[early_stopping, checkpoint, reduce_lr]) #reduce_lr#, lr_scheduler,
 
 
 import matplotlib
@@ -490,8 +572,8 @@ plt.ylabel('Loss')
 plt.legend()
 plt.show()
 
-plt.plot(history.history['accuracy'], label='Training Accuracy')
-plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.plot(history.history['categorical_accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_categorical_accuracy'], label='Validation Accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
@@ -552,5 +634,4 @@ print('Textual Val RMSE:', rmse4)
 
 print('\nTextual Val F1 unweighted:', f4_unweighted)
 print('Textual Val Accuracy unweighted:', acc4_unweighted)
-
 
