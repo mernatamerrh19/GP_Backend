@@ -515,14 +515,14 @@ print("\n"+str(X_train_reshaped.shape))
 
 # Adding early stopping
 
-checkpoint = ModelCheckpoint("visual.keras.weights.h5", monitor='val_categorical_accuracy', verbose=1, save_best_only=True, save_weights_only=True, mode='auto')
-early_stopping = EarlyStopping(monitor='val_categorical_accuracy',  patience=100, verbose=1,  min_delta=0, mode='max', restore_best_weights=True)
+checkpoint = ModelCheckpoint("visual.keras", monitor='val_categorical_accuracy', verbose=1, save_best_only=True, save_weights_only=False, mode='auto')
+early_stopping = EarlyStopping(monitor='val_categorical_accuracy',  patience=120, verbose=1,  min_delta=0, mode='max', restore_best_weights=True)
 
 
 # Learning rate scheduler
-def lr_schedule(epoch):
-    return 0.001 * np.exp(-epoch / 10)
-lr_scheduler = LearningRateScheduler(lr_schedule)
+# def lr_schedule(epoch):
+#     return 0.001 * np.exp(-epoch / 10)
+# lr_scheduler = LearningRateScheduler(lr_schedule)
 
 num_classes = 2
 batch_size = 64
@@ -532,7 +532,10 @@ epochs = 1000
 
 # optimizer=tf.keras.optimizers.Nadam()
 # optimizer=tf.keras.optimizers.RMSprop()
-reduce_lr = tf.keras.callbacks.ReduceLROnPlateau()
+# reduce_lr = tf.keras.callbacks.ReduceLROnPlateau()
+# def lr_schedule(epoch):
+#     return 0.01 * np.exp(-epoch / 10)
+# lr_scheduler = LearningRateScheduler(lr_schedule)
 
 optimizer = keras.optimizers.Adam()
 # optimizer = keras.optimizers.Adamax()
@@ -546,18 +549,23 @@ print(X_train_reshaped.shape)
 model = models.Sequential()
 
 #keras.layers.Normalization()
-# model.add(tf.keras.layers.GaussianNoise(0.05))
+
 #,  kernel_regularizer=tf.keras.regularizers.l2(0.01)
-# model.add(keras.layers.Normalization())
+
+model.add(tf.keras.layers.GaussianNoise(0.4)) #0.2/0.4
+# model.add(BatchNormalization())
 
 #80.3
 model.add(layers.Dense(64,  activation='tanh',kernel_regularizer=keras.regularizers.L2(l2=0.01)))
 model.add(BatchNormalization())
-
+model.add(layers.Dropout(0.1)) #0.1
+# ,kernel_regularizer=keras.regularizers.L2(l2=0.01)
 
 # 76.8 when l2 regularizer is here
 model.add(layers.Dense(32, activation='tanh'))
 model.add(BatchNormalization())
+# model.add(layers.Dropout(0.1)) #wasn't here
+
 
 #82.1% when l2 regularizer is here
 model.add(layers.Dense(16,  activation='tanh',kernel_regularizer=keras.regularizers.L2(l2=0.01)))
@@ -565,17 +573,19 @@ model.add(BatchNormalization())
 model.add(layers.MaxPooling1D(3))
 
 
+
 #80% when l2 regularizer is here
 model.add(layers.Dense(32, activation='tanh'))
-model.add(BatchNormalization())
 model.add(layers.MaxPooling1D(3))
-model.add(layers.Dropout(0.1))
+model.add(layers.Dropout(0.1)) #0.1
 
 #ALL TRIED BELOW
 model.add(GlobalMaxPooling1D())
-model.add(layers.Dense(64, activation='tanh')) #16 and 64
-model.add(layers.Dropout(0.2))
 # model.add(BatchNormalization())
+model.add(layers.Dense(64, activation='tanh')) #16 and 64
+# model.add(BatchNormalization())
+model.add(layers.Dropout(0.3)) #0.2
+model.add(BatchNormalization())
 model.add(layers.Dense(2, activation='softmax'))
 
 
@@ -591,7 +601,16 @@ model.compile(optimizer=optimizer, loss=tf.keras.losses.CategoricalCrossentropy(
 # lr_callback = tf.keras.callbacks.LearningRateScheduler(lr_scheduler)
 # Train the model (batch size was 8) I changed it in 8 may 7:12 am
 #8/8, it was 8/16
-history = model.fit(X_train_reshaped, y_train_one_hot, batch_size=32, epochs=epochs,  validation_batch_size=16,
+
+
+swap_weights=tf.keras.callbacks.SwapEMAWeights(swap_on_epoch=False)
+reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.4,
+                              patience=10, min_lr=0.00000001, mode='max')
+
+
+# reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.2,
+#                               patience=10, min_lr=0.00001, mode='max')
+history = model.fit(X_train_reshaped, y_train_one_hot, batch_size=16, epochs=epochs,  validation_batch_size=8,
                     validation_data=(X_dev_reshaped, y_dev_one_hot), callbacks=[early_stopping, checkpoint])
 
 np.save('x_test_visual_model',X_test_reshaped)
@@ -617,10 +636,10 @@ plt.ylabel('Accuracy')
 plt.legend()
 plt.show()
 
-predictions= np.argmax(model.predict(X_test_reshaped), axis= 1)
+predictions_ontest= np.argmax(model.predict(X_test_reshaped), axis= 1)
 y_test_one_hot= np.argmax(y_test_one_hot, axis= 1)
 
-np.save("y_predicted_visual_model", np.asarray(predictions))
+np.save("y_predicted_visual_model", np.asarray(predictions_ontest))
 np.save('y_true_visual_model', y_test_one_hot)
 
 predictions_onval_0=model.predict(X_dev_reshaped)
@@ -638,20 +657,23 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import f1_score
 
-# f1_3=f1_score(y_test_one_hot, predictions, average='weighted')
-# f1_3_un=f1_score(y_test_one_hot, predictions, average='macro')
-# acc3_un=accuracy_score(y_test_one_hot, predictions)
-# acc3=balanced_accuracy_score(y_test_one_hot, predictions)
-# mse3= mean_squared_error(y_test_one_hot, predictions)
-# rmse3=np.sqrt(mse3)
-# print('\nAudio Test F1: weighted', f1_3)
-# print('Audio Test Accuracy weighted:', acc3)
-#
-# print('\nAudio Test F1: unweighted', f1_3_un)
-# print('Audio Test Accuracy unweighted:', acc3_un)
-# print('Audio Test MSE:', mse3)
-# print('Audio Test RMSE:', rmse3)
+f4_unweighted_1= f1_score(y_test_one_hot, predictions_ontest, average='macro')
+acc4_unweighted_1=accuracy_score(y_test_one_hot, predictions_ontest)
 
+f4_1=f1_score(y_test_one_hot, predictions_ontest, average='weighted')
+acc4_1=balanced_accuracy_score(y_test_one_hot, predictions_ontest)
+mse4_1= mean_squared_error(y_test_one_hot, predictions_ontest)
+rmse4_1=np.sqrt(mse4_1)
+
+print('\nVisual Test F1 weighted:', f4_1)
+print('Visual Test Accuracy weighted:', acc4_1)
+print('Visual Test MSE:', mse4_1)
+print('Visual Test RMSE:', rmse4_1)
+
+print('\nVisual Test F1 unweighted:', f4_unweighted_1)
+print('Visual Test Accuracy unweighted:', acc4_unweighted_1)
+
+#--------------------------------------------------------------------#
 
 f4_unweighted= f1_score(y_dev_one_hot, predictions_onval, average='macro')
 acc4_unweighted=accuracy_score(y_dev_one_hot, predictions_onval)
